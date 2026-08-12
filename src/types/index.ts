@@ -8,12 +8,14 @@ export interface Story {
   updatedAt: number
 }
 
-export type VariableType = "text" | "boolean" | "number"
+export interface NodeData {
+  label: string
+  content: ContentItem[]
+}
 
-export interface VariableNodeData {
-    label: string,
-    type: VariableType,
-    value: string | boolean | number
+export interface ContentItem {
+  type: 'image' | 'sound' | 'paragraph'
+  content: string
 }
 
 export interface GraphData {
@@ -37,8 +39,7 @@ export interface GraphEdge {
 }
 
 export interface Variable {
-  id: string;
-  name: string;
+  label: string;
   type: "number" | "boolean" | "text";
   defaultValue: number | boolean | string;
   visible: boolean;

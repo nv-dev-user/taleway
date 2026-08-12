@@ -39,11 +39,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         if (!data) return Response.json({ message: "The story does not exist." }, { status: 404 });
 
         // Updating
+        if (variables.filter((variable) => variable.label === '' || variable.defaultValue === '').length > 0)
+            return Response.json({ message: "One or more variables are invalid" }, { status: 400 });
+
         const graph: GraphData = { nodes, edges, variables };
         await db.update(stories).set({
             title,
             graph
         }).where(eq(stories.id, Number(id)));
+
         return Response.json({})
     } catch (e) {
         return Response.json({ message: "An error occured. Please try again." }, { status: 500 });

@@ -15,6 +15,11 @@
   --color-primary: var(--primary)
 }
 
+* {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -22,7 +27,11 @@ body {
 }
 
 .btn-primary {
-  @apply bg-primary rounded-lg text-background p-2 cursor-pointer
+  @apply bg-primary rounded-lg text-background p-2 cursor-pointer;
+}
+
+.input-primary {
+  @apply rounded-lg p-1 border;
 }
 
 #parchment {

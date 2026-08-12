@@ -47,7 +47,7 @@ export default function ReadPage() {
             </header>
             <main className="flex flex-col flex-1 gap-4 text-justify pt-4" id="parchment">
                 <div className="flex-1 flex flex-col gap-4">
-                    { noder.replaceVariablesInString(story?.graph.nodes ?? [], currentPage?.data.content as string) }
+                    TODO
                 </div>
 
                 {
