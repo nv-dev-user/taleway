@@ -44,22 +44,47 @@ function EditorFlow() {
     const [ghostPosition, setGhostPosition] = useState<{ x: number, y: number } | null>(null)
     const [panel, setPanel] = useState<'state' | 'content' | 'hidden' | 'global-settings' | 'settings'>('content');
 
-    const [askConfirm, setAskConfirm] = useState<boolean>(false);
-
     const flowWrapperRef = useRef<HTMLDivElement>(null);
     const { screenToFlowPosition } = useReactFlow();
 
-    // ESC to cancel pending node
+    //---------- FUNCTIONS ----------//
+    const save = async () => {
+        const res = await fetch(`/api/stories/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: story?.title || '',
+                nodes,
+                edges,
+                variables,
+            })
+        })
+
+        const data = await res.json()
+
+        if (res.status !== 200) {
+            console.error(res.status, data.message)
+        } else {
+            setIsSaved(true)
+        }
+    }
+
+    // ESC to cancel pending node / Ctrl+S to save
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && pendingNode) {
                 setPendingNode(null)
                 setGhostPosition(null)
             }
+
+            if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault()
+                save()
+            }
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-    }, [pendingNode])
+    }, [pendingNode, save])
 
     useEffect(() => {
         startTransition(async () => {
@@ -192,28 +217,6 @@ function EditorFlow() {
             setIsSaved(false);
         }, []
     );
-
-    //---------- FUNCTIONS ----------//
-    const save = async () => {
-        const res = await fetch(`/api/stories/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                title: story?.title || '',
-                nodes,
-                edges,
-                variables,
-            })
-        })
-
-        const data = await res.json()
-
-        if (res.status !== 200) {
-            console.error(res.status, data.message)
-        } else {
-            setIsSaved(true)
-        }
-    }
 
     if (isLoading) return (<div></div>)
 
