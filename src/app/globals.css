@@ -5,6 +5,7 @@
   --background: #fafafa;
   --foreground: #111111;
   --primary: #111111;
+  --accent: oklch(62.3% 0.214 259.815);
 }
 
 @theme inline {
@@ -12,7 +13,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-primary: var(--primary)
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
 }
 
 * {
@@ -36,6 +38,10 @@ body {
 
 .input-primary {
   @apply rounded-lg p-1 border;
+}
+
+.textarea-primary {
+  @apply rounded-lg p-2 border;
 }
 
 #parchment {

@@ -4,10 +4,15 @@ import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, Edge, EdgeChan
 import { useParams, useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useState } from "react";
 import '@xyflow/react/dist/style.css';
-import { NodeData, Story, StoryNode, Variable } from "@/types";
+import { ContentItem, NodeData, Story, StoryNode, Variable } from "@/types";
 import VariablePanel from "@/components/VariablePanel";
 import { Icon } from "@iconify/react";
 import ContentPanel from "@/components/ContentPanel";
+import StartNode from "@/components/nodes/StartNode";
+
+const nodeTypes = {
+    startNode: StartNode
+}
 
 export default function EditorPage() {
     const { id } = useParams();
@@ -35,7 +40,7 @@ export default function EditorPage() {
             } else {
                 setStory(data.story);
                 setNodes(data.story?.graph?.nodes ?? [
-                    { id: 'n1', position: { x: 0, y: 0 }, data: { label: 'Noeud 1', content: [] }}
+                    { id: 'n1', position: { x: 0, y: 0 }, type: 'startNode', data: { label: 'Noeud 1', content: [] }}
                 ]);
                 setEdges(data.story?.graph?.edges ?? []);
                 setVariables(data.story.graph?.variables ?? [])
@@ -45,7 +50,7 @@ export default function EditorPage() {
     }, [id])
 
     //---------- NODE DATA ----------//
-    const onDataChange = (field: keyof NodeData, value: string) => {
+    const onDataChange = (field: keyof NodeData, value: string|ContentItem[]) => {
         setNodes((nodes) =>
             nodes.map((n) =>
                 currentNode?.id === n.id
@@ -63,6 +68,7 @@ export default function EditorPage() {
                     : n
             )
         );
+        setIsSaved(false);
     }
 
     //---------- VARIABLE ----------//
@@ -73,12 +79,13 @@ export default function EditorPage() {
     const onAddVariable = () => {
         setVariables((vars) => [
             ...vars,
-            { label: '', type: 'text', defaultValue: '', visible: false}
+            { label: '', type: 'text', value: '', visible: false}
         ]);
         setIsSaved(false);
     }
     const onRemoveVariable = (index: number) => {
         setVariables(variables.filter((_, i) => i !== index))
+        setIsSaved(false);
     }
 
     //---------- FLOW ----------//
@@ -151,6 +158,7 @@ export default function EditorPage() {
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onSelectionChange={onSelectionChange}
+                    nodeTypes={nodeTypes}
                     fitView
                     proOptions={{ hideAttribution: true }}
                 />

@@ -7,7 +7,18 @@ export default function useNode() {
         return edges.filter((edge) => edge.source === node.id)
     }
 
+    const replaceVariables = (variables: Variable[], content: string) => {
+        if (!variables || variables.length === 0) return content;
+
+        console.log(variables);
+
+        variables.forEach((variable) => content = content.replaceAll(new RegExp(`\\[\\[${variable.label}\\]\\]`, 'g'), variable.value as string))
+
+        return content;
+    }
+
     return {
-        getChoices
+        getChoices,
+        replaceVariables
     }
 }

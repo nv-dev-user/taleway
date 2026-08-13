@@ -15,11 +15,11 @@ export default function VariablePanel({ variables, onAddVariable, onRemoveVariab
             <h2 className="text-center text-xl font-bold mb-8">Story State</h2>
             <div className="flex flex-col gap-2">
                 { variables.map((variable, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                        <button className="cursor-pointer flex items-center justify-center hover:bg-gray-100 py-1" onClick={() => onRemoveVariable(index)}>
+                    <div key={index} className="grid grid-cols-12 gap-4 items-center">
+                        <button className="cursor-pointer h-10 w-10 flex items-center justify-center hover:bg-gray-100 py-1" onClick={() => onRemoveVariable(index)}>
                             <Icon icon="mdi:trash-can" className="text-red-500" />
                         </button>
-                        <button className="cursor-pointer flex items-center justify-center hover:bg-gray-100 py-1" onClick={() => onVariableChange(index, 'visible', !variable.visible)}>
+                        <button className="cursor-pointer h-10 w-10 flex items-center justify-center hover:bg-gray-100 py-1" onClick={() => onVariableChange(index, 'visible', !variable.visible)}>
                             <Icon icon={variable.visible ? 'mdi:eye' : 'mdi:eye-closed'} className="black" />
                         </button>
                         <input
@@ -45,8 +45,8 @@ export default function VariablePanel({ variables, onAddVariable, onRemoveVariab
                             variable.type === 'boolean' ?
                                 <select
                                     className="col-span-3 input-primary"
-                                    value={String(variable.defaultValue)}
-                                    onChange={(e) => onVariableChange(index, 'defaultValue', e.currentTarget.value)}
+                                    value={String(variable.value)}
+                                    onChange={(e) => onVariableChange(index, 'value', e.currentTarget.value)}
                                 >
                                     <option value="true">true</option>
                                     <option value="false">false</option>
@@ -55,8 +55,8 @@ export default function VariablePanel({ variables, onAddVariable, onRemoveVariab
                                 <input
                                     type={variable.type}
                                     className="col-span-3 input-primary"
-                                    value={variable.type === 'number' ? (isNaN(Number(variable.defaultValue)) ? 0 : Number(variable.defaultValue)) : String(variable.defaultValue)}
-                                    onChange={(e) => onVariableChange(index, 'defaultValue', e.currentTarget.value)}
+                                    value={variable.type === 'number' ? (isNaN(Number(variable.value)) ? 0 : Number(variable.value)) : String(variable.value)}
+                                    onChange={(e) => onVariableChange(index, 'value', e.currentTarget.value)}
                                 />
                         }
                     </div>

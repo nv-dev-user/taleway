@@ -1,4 +1,4 @@
-import { Edge, Node } from "@xyflow/react";
+import { Edge, Node, NodeProps } from "@xyflow/react";
 
 export interface Story {
   id: number,
@@ -9,6 +9,10 @@ export interface Story {
 }
 
 export interface StoryNode extends Node {
+  data: NodeData
+}
+
+export interface StoryNodeProps extends NodeProps {
   data: NodeData
 }
 
@@ -46,6 +50,6 @@ export interface GraphEdge {
 export interface Variable {
   label: string;
   type: "number" | "boolean" | "text";
-  defaultValue: number | boolean | string;
+  value: number | boolean | string;
   visible: boolean;
 }
