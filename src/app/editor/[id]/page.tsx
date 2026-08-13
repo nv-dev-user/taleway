@@ -314,18 +314,17 @@ function EditorFlow() {
                 </button>
 
                 { panel === 'content' &&
-                        <ContentPanel
-                            node={currentNode}
-                            onDataChange={onDataChange}
-                            onAddParagraph={onAddParagraph}
-                        />
+                    <ContentPanel
+                        node={currentNode}
+                        onDataChange={onDataChange}
+                        onAddParagraph={onAddParagraph}
+                    />
                 }
                 { panel === 'settings' &&
                     <div>
                         <p>- Modifier couleur de fond</p>
                         <p>- Modifier couleur label</p>
                     </div>
-
                 }
 
                 { panel === 'state' &&
@@ -336,13 +335,15 @@ function EditorFlow() {
                         onVariableChange={onVariableChange}
                     />
                 }
-                {
-                    panel === 'global-settings' &&
-                        <div>
-                            <p className="text-center font-bold text-xl mb-8">Story Settings</p>
-                            <p>- Modifier titre</p>
-                            <p>- Modifier couverture</p>
-                        </div>
+                { panel === 'global-settings' &&
+                    <div>
+                        <p className="text-center font-bold text-xl mb-8">Story Settings</p>
+                        <p>- Modifier titre</p>
+                        <p>- Modifier couverture</p>
+                        <br />
+                        <p>Créé le {new Date(story?.createdAt ?? '').toLocaleString()}</p>
+                        <p>Mis à jour le {new Date(story?.updatedAt ?? '').toLocaleString()}</p>
+                    </div>
                 }
             </div>
         </div>

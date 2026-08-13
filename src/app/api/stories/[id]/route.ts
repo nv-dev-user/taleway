@@ -45,7 +45,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const graph: GraphData = { nodes, edges, variables };
         await db.update(stories).set({
             title,
-            graph
+            graph,
         }).where(eq(stories.id, Number(id)));
 
         return Response.json({})

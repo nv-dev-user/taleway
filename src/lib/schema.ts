@@ -5,10 +5,11 @@ export const stories = sqliteTable("stories", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   graph: text("graph", { mode: "json" }),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`(unixepoch() * 1000)`),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`(unixepoch() * 1000)`),
+    .default(sql`(unixepoch())`)
+    .$onUpdate(() => sql`(unixepoch())`),
 });
