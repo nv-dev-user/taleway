@@ -8,7 +8,12 @@ export interface Story {
   updatedAt: number
 }
 
+export interface StoryNode extends Node {
+  data: NodeData
+}
+
 export interface NodeData {
+  [key: string]: unknown
   label: string
   content: ContentItem[]
 }
