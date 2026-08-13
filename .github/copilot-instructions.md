@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # Taleway - Instructions pour l'Agent IA (Copilot / Ollama)
 
 ## 1. Vue d'ensemble du projet (Vision Finale)
