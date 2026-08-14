@@ -41,29 +41,15 @@ export interface NodeData {
   content: ContentItem[]
 }
 
-export interface ContentItem {
-  type: 'image' | 'sound' | 'paragraph'
-  content: string
-}
+export type ContentItem =
+  | { type: 'paragraph'; content: string }
+  | { type: 'image'; content: string; alt?: string }
+  | { type: 'sound'; content: string; loop?: boolean }
 
 export interface GraphData {
   nodes: StoryNode[];
   edges: StoryEdge[];
   variables?: Variable[];
-}
-
-export interface GraphNode extends Node {
-  data: {
-    label: string,
-  }
-}
-
-export interface GraphEdge {
-  id: string;
-  source: string;
-  target: string;
-  label?: string;
-  // ajouté plus tard : conditions
 }
 
 export interface Variable {

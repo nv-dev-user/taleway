@@ -1,6 +1,6 @@
 import { Condition, ConditionGroup, ContentItem, EdgeData, NodeData, StoryEdge, StoryNode, Variable } from "@/types"
 import { Icon } from "@iconify/react"
-import { Edge, isEdge, isNode, Node } from "@xyflow/react"
+import { isEdge, isNode } from "@xyflow/react"
 
 interface ContentPanelProps {
     element: StoryNode|StoryEdge|undefined
@@ -16,6 +16,7 @@ interface ContentPanelProps {
 }
 
 export default function ContentPanel ({ element, variables, onDataChange, onAddParagraph, onFieldChange, onAddGroup, onAddCondition, onRemoveGroup, onRemoveCondition }: ContentPanelProps) {
+
     if (!element) return (
         <div className="flex h-full justify-center items-center">
             <p>Select a node or an edge to edit its content</p>
@@ -94,7 +95,7 @@ export default function ContentPanel ({ element, variables, onDataChange, onAddP
                                 <div className="flex-1 h-px bg-gray-300"></div>
                             </div>
                         )}
-                        <div className="flex flex-col gap-2 p-2 border rounded-lg">
+                        <div className="flex flex-col gap-2 p-2 border rounded-lg relative min-h-24">
                             <div className="flex items-center justify-end">
                                 <button className="cursor-pointer flex items-center h-8 w-8 justify-center hover:bg-gray-100" onClick={() => onRemoveGroup(groupIndex)}>
                                     <Icon icon="mdi:trash-can" className="text-red-500" />
@@ -102,7 +103,7 @@ export default function ContentPanel ({ element, variables, onDataChange, onAddP
                             </div>
 
                         { group.conditions.map((c, conditionIndex) => (
-                            <div key={conditionIndex} className="flex gap-2 items-center">
+                            <div key={conditionIndex} className="relative flex gap-2 items-center">
                                 <button className="cursor-pointer flex items-center h-8 w-8 justify-center hover:bg-gray-100" onClick={() => onRemoveCondition(groupIndex, conditionIndex)}>
                                     <Icon icon="mdi:trash-can" className="text-red-500" />
                                 </button>
@@ -154,10 +155,12 @@ export default function ContentPanel ({ element, variables, onDataChange, onAddP
                             </div>
                         ))}
 
-                        <button className="btn-primary flex gap-2 items-center justify-center" onClick={() => onAddCondition(groupIndex)}>
-                            <Icon icon="mdi:plus-circle-outline" className="size-5" />
-                            <span className="text-sm">Condition</span>
-                        </button>
+                            <div className="absolute bottom-0 right-0 m-2">
+                                <button className={`${variables.filter((v) => v.label !== '').length > 0 ? 'btn-primary' : 'btn-primary-disabled'} flex gap-2 items-center justify-center`} onClick={() => onAddCondition(groupIndex)}>
+                                    <Icon icon="mdi:plus-circle-outline" className="size-5" />
+                                    <span className="text-sm">Condition</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}

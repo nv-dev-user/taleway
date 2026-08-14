@@ -1,7 +1,7 @@
 "use client"
 
-import useNode from "@/composables/useNode";
-import useSave from "@/composables/useSave";
+import { getChoices, replaceVariables } from "@/composables/useReader";
+import { loadBookmark, saveBookmark } from "@/composables/useSave";
 import { Story, StoryNode, Variable } from "@/types";
 import { Icon } from "@iconify/react";
 import { useParams, useRouter } from "next/navigation"
@@ -10,8 +10,6 @@ import { startTransition, useEffect, useState } from "react"
 export default function ReadPage() {
     const { id } = useParams();
 
-    const noder = useNode();
-    const saver = useSave();
     const router = useRouter();
 
     const [story, setStory] = useState<Story>();
@@ -29,7 +27,7 @@ export default function ReadPage() {
                 const story = data.story as Story;
                 setStory(story);
 
-                const { variables: vars, bookmark } = saver.load(story.title);
+                const { variables: vars, bookmark } = loadBookmark(story.title);
 
                 if (!bookmark) setCurrentPage(story.graph.nodes[0] as StoryNode);
                 else setCurrentPage(story.graph.nodes.filter((n) => n.id === bookmark).at(0) as StoryNode);
@@ -43,7 +41,7 @@ export default function ReadPage() {
                     return;
                 }
 
-                saver.save(
+                saveBookmark(
                     story.title,
                     vars ?? story.graph.variables ?? [],
                     bookmark ?? story.graph.nodes[0].id
@@ -60,7 +58,7 @@ export default function ReadPage() {
         const nextNode = story?.graph.nodes.filter(node => node.id === id).at(0);
         if (!nextNode) return;
         setCurrentPage(nextNode as StoryNode);
-        saver.save(story.title, variables, nextNode.id);
+        saveBookmark(story.title, variables, nextNode.id);
     }
 
     const saveAndQuit = () => {
@@ -69,7 +67,7 @@ export default function ReadPage() {
             return
         }
 
-        saver.save(story.title, variables, currentPage.id);
+        saveBookmark(story.title, variables, currentPage.id);
         router.push('/');
     }
 
@@ -87,7 +85,7 @@ export default function ReadPage() {
                     { currentPage?.data.content.map((c, index) => {
                         if (c.type === 'paragraph') return (
                             <p key={index}>
-                                { noder.replaceVariables(variables ?? [], c.content) }
+                                { replaceVariables(variables ?? [], c.content) }
                             </p>
                         )
                     })}
@@ -96,7 +94,7 @@ export default function ReadPage() {
                 {
                     currentPage &&
                     story?.graph?.edges &&
-                    noder.getChoices(story?.graph.edges ?? [], currentPage, variables).map(choice => (
+                    getChoices(story?.graph.edges ?? [], currentPage, variables).map(choice => (
                         <button className="btn-primary" key={choice.id} onClick={() => next(choice.target)}>{choice.label}</button>
                     ))
                 }

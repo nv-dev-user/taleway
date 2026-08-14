@@ -1,13 +1,13 @@
 "use client"
 
 import { Story, StoryEdge, StoryNode, Variable } from "@/types"
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 
-const defaultNodes: StoryNode[] = [
+const createDefaultNodes = (): StoryNode[] => [
     { id: crypto.randomUUID(), deletable: false, type: 'startNode', position: { x: 0, y: 0 }, data: { label: 'Start', content: [] } }
 ];
 
-const defaultEdges: StoryEdge[] = []
+const createDefaultEdges = (): StoryEdge[] => []
 
 export default function useStoryData() {
     const [story, setStory] = useState<Story|undefined>(undefined);
@@ -15,7 +15,7 @@ export default function useStoryData() {
     const [edges, setEdges] = useState<StoryEdge[]>([]);
     const [variables, setVariables] = useState<Variable[]>([]);
 
-    const save = async (id: string) => {
+    const save = useCallback(async (id: string) => {
         const res = await fetch(`/api/stories/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -35,9 +35,9 @@ export default function useStoryData() {
         } else {
             return true;
         }
-    }
+    }, [story, nodes, edges, variables])
 
-    const load = async (id: string) => {
+    const load = useCallback(async (id: string) => {
         const res = await fetch(`/api/stories/${id}`);
         const data = await res.json();
 
@@ -46,13 +46,13 @@ export default function useStoryData() {
         }
 
         setStory(data.story);
-        setNodes(data.story.graph.nodes ?? defaultNodes);
-        setEdges(data.story.graph.edges ?? defaultEdges);
+        setNodes(data.story.graph.nodes ?? createDefaultNodes());
+        setEdges(data.story.graph.edges ?? createDefaultEdges());
         setVariables(data.story.graph.variables ?? []);
         return true;
-    }
+    }, [])
 
-    return {
+    return useMemo(() => ({
         story,
         setStory,
         nodes,
@@ -64,5 +64,5 @@ export default function useStoryData() {
         // ---
         save,
         load
-    }
+    }), [story, nodes, edges, variables, save, load])
 }
