@@ -12,6 +12,25 @@ export interface StoryNode extends Node {
   data: NodeData
 }
 
+export interface StoryEdge extends Edge {
+  data: EdgeData
+}
+
+export interface EdgeData {
+  [key: string]: unknown
+  conditionGroups: ConditionGroup[]
+}
+
+export interface ConditionGroup {
+  conditions: Condition[]
+}
+
+export interface Condition {
+  label: string,
+  operation: '=='|'>='|'>'|'<='|'<'|'!='
+  value: string
+}
+
 export interface StoryNodeProps extends NodeProps {
   data: NodeData
 }
@@ -28,8 +47,8 @@ export interface ContentItem {
 }
 
 export interface GraphData {
-  nodes: Node[];
-  edges: Edge[];
+  nodes: StoryNode[];
+  edges: StoryEdge[];
   variables?: Variable[];
 }
 

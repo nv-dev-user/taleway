@@ -95,8 +95,8 @@ export default function ReadPage() {
 
                 {
                     currentPage &&
-                    story?.graph.edges &&
-                    noder.getChoices(story?.graph.edges ?? [], currentPage).map(choice => (
+                    story?.graph?.edges &&
+                    noder.getChoices(story?.graph.edges ?? [], currentPage, variables).map(choice => (
                         <button className="btn-primary" key={choice.id} onClick={() => next(choice.target)}>{choice.label}</button>
                     ))
                 }

@@ -75,9 +75,9 @@ L'application se divise en deux parties :
 4. **Minimalisme UI :** NE PAS ajouter de bibliothèques UI complexes (Material UI, Chakra). Utiliser uniquement TailwindCSS avec des classes basiques (`border`, `p-4`, `flex`, `flex-col`).
 5. **Approche progressive :** Ne pas coder toutes les fonctionnalités finales d'un coup. Suivre les instructions du développeur étape par étape (ex: "Aujourd'hui on fait juste les pages texte", "Aujourd'hui on ajoute les variables booléennes").
 6. **Sauvegarde :** La sauvegarde du graphe de l'éditeur doit se faire via un appel `fetch` vers `/api/stories/[id]`.
-7. **Validation :** Sans validation de l'utilisateur, l'agent NE PEUT PAS et NE DOIT PAS coder !!
+7. **Validation :** Sans validation de l'utilisateur, l'agent NE PEUT PAS et NE DOIT PAS coder !! Tu dois répondre dans un premier temps dans le tchat puis demander si l'utilisateur veut que l'agent applique les modifications.
 
 ## 6. Comportement de l'Agent
 
 - **Ne pas anticiper :** Ne code pas les événements complexes ou la customisation UI tant que le développeur ne te le demande pas explicitement.
-- **Validation :** Demande toujours, toujours, toujours une validation par écrit si l'utilisateur veut, oui ou non, que tu codes ce qu'il a demandé. Si non, tu réponds seulement à la question en codant dans le tchat s'il le faut !!
+- **Validation :** Sans validation de l'utilisateur, l'agent NE PEUT PAS et NE DOIT PAS coder !! Tu dois répondre dans un premier temps dans le tchat puis demander si l'utilisateur veut que l'agent applique les modifications.

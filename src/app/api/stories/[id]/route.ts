@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db"
 import { stories } from "@/lib/schema"
-import { GraphData, Story, Variable } from "@/types";
+import { GraphData, Story, StoryEdge, StoryNode, Variable } from "@/types";
 import { Edge, Node } from "@xyflow/react";
 import { eq } from "drizzle-orm"
 
@@ -21,8 +21,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 type SaveInfo = {
     title: string,
-    nodes: Node[],
-    edges: Edge[],
+    nodes: StoryNode[],
+    edges: StoryEdge[],
     variables: Variable[]
 }
 

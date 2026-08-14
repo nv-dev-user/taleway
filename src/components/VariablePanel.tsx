@@ -19,9 +19,6 @@ export default function VariablePanel({ variables, onAddVariable, onRemoveVariab
                         <button className="cursor-pointer h-10 w-10 flex items-center justify-center hover:bg-gray-100 py-1" onClick={() => onRemoveVariable(index)}>
                             <Icon icon="mdi:trash-can" className="text-red-500" />
                         </button>
-                        <button className="cursor-pointer h-10 w-10 flex items-center justify-center hover:bg-gray-100 py-1" onClick={() => onVariableChange(index, 'visible', !variable.visible)}>
-                            <Icon icon={variable.visible ? 'mdi:eye' : 'mdi:eye-closed'} className="black" />
-                        </button>
                         <input
                             className={
                                 `col-span-3 input-primary
@@ -34,7 +31,12 @@ export default function VariablePanel({ variables, onAddVariable, onRemoveVariab
                         <select
                             className="col-span-2 input-primary"
                             value={variable.type}
-                            onChange={(e) => onVariableChange(index, 'type', e.currentTarget.value)}
+                            onChange={(e) => {
+                                const newType = e.currentTarget.value;
+                                const defaultValue = newType === 'boolean' ? true : newType === 'number' ? 0 : '';
+                                onVariableChange(index, 'type', newType);
+                                onVariableChange(index, 'value', defaultValue);
+                            }}
                         >
                             <option value="text">text</option>
                             <option value="boolean">boolean</option>
@@ -46,7 +48,7 @@ export default function VariablePanel({ variables, onAddVariable, onRemoveVariab
                                 <select
                                     className="col-span-3 input-primary"
                                     value={String(variable.value)}
-                                    onChange={(e) => onVariableChange(index, 'value', e.currentTarget.value)}
+                                    onChange={(e) => onVariableChange(index, 'value', Boolean(e.currentTarget.value))}
                                 >
                                     <option value="true">true</option>
                                     <option value="false">false</option>
@@ -62,10 +64,12 @@ export default function VariablePanel({ variables, onAddVariable, onRemoveVariab
                     </div>
                 ))}
             </div>
-            <div className="absolute bottom-0 right-0">
-                <button className="btn-primary flex gap-2 items-center" onClick={() => onAddVariable()}>
+            <div className="absolute bottom-0 right-0 grid grid-cols-12 w-full">
+                <div className="col-span-4"></div>
+                <div className="col-span-4"></div>
+                <button className="btn-primary flex gap-2 items-center col-span-4 justify-center" onClick={() => onAddVariable()}>
                     <Icon icon="mdi:plus-circle-outline" className="size-5" />
-                    <span>Add a variable</span>
+                    <span className="text-sm">Variable</span>
                 </button>
             </div>
         </div>

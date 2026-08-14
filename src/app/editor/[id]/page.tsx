@@ -1,16 +1,17 @@
 "use client"
 
-import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, Edge, EdgeChange, EdgeTypes, Node, NodeChange, NodeTypes, OnBeforeDelete, OnDelete, OnSelectionChangeParams, ReactFlow, ReactFlowProvider, useReactFlow } from "@xyflow/react";
+import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, Edge, EdgeChange, EdgeTypes, isNode, Node, NodeChange, NodeTypes, OnBeforeDelete, OnDelete, OnSelectionChangeParams, ReactFlow, ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useParams, useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import '@xyflow/react/dist/style.css';
-import { ContentItem, NodeData, Story, StoryNode, Variable } from "@/types";
+import { ConditionGroup, ContentItem, NodeData, Story, StoryEdge, StoryNode, Variable } from "@/types";
 import VariablePanel from "@/components/VariablePanel";
 import { Icon } from "@iconify/react";
-import ContentPanel from "@/components/ContentPanel";
 import StartNode from "@/components/nodes/StartNode";
 import EndNode from "@/components/nodes/EndNode";
 import PageNode from "@/components/nodes/PageNode";
+import ContentPanel from "@/components/ContentPanel";
+import useStoryData from "@/composables/useStoryData";
 
 const nodeTypes = {
     startNode: StartNode,
@@ -28,18 +29,16 @@ export default function EditorPage() {
 
 function EditorFlow() {
     const { id } = useParams();
-    const router = useRouter();
+
+    const storyData = useStoryData()
 
     const [isLoading, setIsLoading] = useState<boolean>(true)
 
     const [isSaved, setIsSaved] = useState<boolean>(true);
-    const [story, setStory] = useState<Story | undefined>();
-    const [nodes, setNodes] = useState<StoryNode[]>([]);
-    const [currentNodeId, setCurrentNodeId] = useState<string|undefined>(undefined)
-    const currentNode = nodes.find((n) => n.id === currentNodeId)
-    const [edges, setEdges] = useState<Edge[]>([]);
 
-    const [variables, setVariables] = useState<Variable[]>([])
+    const [currentId, setCurrentId] = useState<string|undefined>(undefined)
+    const current = storyData.nodes.find((n) => n.id === currentId) ?? storyData.edges.find((e) => e.id === currentId);
+
     const [pendingNode, setPendingNode] = useState<'pageNode' | 'endNode' | null>(null)
     const [ghostPosition, setGhostPosition] = useState<{ x: number, y: number } | null>(null)
     const [panel, setPanel] = useState<'state' | 'content' | 'hidden' | 'global-settings' | 'settings'>('content');
@@ -48,26 +47,6 @@ function EditorFlow() {
     const { screenToFlowPosition } = useReactFlow();
 
     //---------- FUNCTIONS ----------//
-    const save = async () => {
-        const res = await fetch(`/api/stories/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                title: story?.title || '',
-                nodes,
-                edges,
-                variables,
-            })
-        })
-
-        const data = await res.json()
-
-        if (res.status !== 200) {
-            console.error(res.status, data.message)
-        } else {
-            setIsSaved(true)
-        }
-    }
 
     // ESC to cancel pending node / Ctrl+S to save
     useEffect(() => {
@@ -79,52 +58,33 @@ function EditorFlow() {
 
             if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault()
-                save()
+                storyData.save(id as string)
             }
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-    }, [pendingNode, save])
+    }, [pendingNode, storyData])
 
     useEffect(() => {
         startTransition(async () => {
-            const res = await fetch(`/api/stories/${id}`);
-            const data = await res.json();
-
-            if (res.status !== 200) {
-                router.push('/editor')
-            } else {
-                setStory(data.story);
-                setNodes(data.story?.graph?.nodes ?? [
-                    { id: crypto.randomUUID(), deletable: false, position: { x: 0, y: 0 }, type: 'startNode', data: { label: 'Start', content: [] }},
-                    { id: crypto.randomUUID(), position: { x: -100, y: 100 }, type: 'pageNode', data: { label: 'Page 1', content: [] }},
-                    { id: crypto.randomUUID(), position: { x: 100, y: 100 }, type: 'pageNode', data: { label: 'Page 2', content: [] }},
-                    { id: crypto.randomUUID(), position: { x: 0, y: 200 }, type: 'endNode', data: { label: 'Fin 1', content: [] }}
-                ]);
-                setEdges(data.story?.graph?.edges ?? []);
-                setVariables(data.story.graph?.variables ?? [])
-                setIsLoading(false)
-            }
+            await storyData.load(id as string);
+            setIsLoading(false);
         })
     }, [id])
 
     //---------- NODE ----------//
-
     const onAddPageNode = () => {
         setPendingNode(prev => prev === 'pageNode' ? null : 'pageNode')
     }
-
     const onAddEndNode = () => {
         setPendingNode(prev => prev === 'endNode' ? null : 'endNode')
     }
-
     const onPaneMouseMove = (event: React.MouseEvent) => {
         if (!pendingNode) return
         const bounds = flowWrapperRef.current?.getBoundingClientRect()
         if (!bounds) return
         setGhostPosition({ x: event.clientX - bounds.left, y: event.clientY - bounds.top })
     }
-
     const onPaneClick = (event: React.MouseEvent) => {
         if (!pendingNode) return;
 
@@ -136,27 +96,120 @@ function EditorFlow() {
             data: { label: '', content: [] }
         };
 
-        setNodes((nds) => [...nds, newNode]);
+        storyData.setNodes((nds) => [...nds, newNode]);
         setPendingNode(null);
         setGhostPosition(null);
         setIsSaved(false);
     }
 
-    //---------- NODE DATA ----------//
-    const onDataChange = (field: keyof NodeData, value: string|ContentItem[]) => {
-        setNodes((nodes) =>
-            nodes.map((n) =>
-                currentNode?.id === n.id
-                    ? { ...n, data: { ...n.data, [field]: value}}
-                    : n
+    //---------- EDGE/NODE ----------//
+    const onFieldChange = (field: keyof StoryEdge| keyof StoryNode, value: string) => {
+        if (!current) return;
+
+        if (isNode(current)) {
+            storyData.setNodes((nodes) =>
+                nodes.map((n) =>
+                    n.id === current.id ? { ...n, [field as string]: value} : n
+                )
+            )
+        } else {
+            storyData.setEdges((edges) =>
+                edges.map((e) =>
+                    e.id === current.id ? { ...e, [field as string]: value} : e
+                )
+            )
+        }
+
+        setIsSaved(false);
+    }
+
+    //---------- EDGE ----------//
+    const onAddGroup = () => {
+        if (!current) return;
+
+        storyData.setEdges((edges) =>
+            edges.map((e) =>
+                current?.id === e.id
+                    ? { ...e, data: { conditionGroups: [...e.data.conditionGroups, { conditions: [] }]}}
+                    : e
             )
         );
         setIsSaved(false);
     }
+    const onAddCondition = (groupIndex: number) => {
+        if (!current) return;
+        const firstValidVariable = storyData.variables.filter((v) => v.label !== '').at(0);
+        if (!firstValidVariable) return;
+
+        storyData.setEdges((edges) =>
+            edges.map((e) =>
+                current?.id === e.id
+                    ? { ...e, data: { conditionGroups: e.data.conditionGroups.map((g, gi) =>
+                        gi === groupIndex
+                            ? { ...g, conditions: [...g.conditions, { label: firstValidVariable.label, operation: '==', value: '' }]}
+                            : g
+                      )}}
+                    : e
+            )
+        );
+        setIsSaved(false);
+    }
+    const onRemoveGroup = (groupIndex: number) => {
+        if (!current) return;
+        storyData.setEdges((edges) =>
+            edges.map((e) =>
+                current?.id === e.id
+                    ? { ...e, data: { conditionGroups: e.data.conditionGroups.filter((_, gi) => gi !== groupIndex) }}
+                    : e
+            )
+        );
+        setIsSaved(false);
+    }
+    const onRemoveCondition = (groupIndex: number, conditionIndex: number) => {
+        if (!current) return;
+        storyData.setEdges((edges) =>
+            edges.map((e) =>
+                current?.id === e.id
+                    ? { ...e, data: { conditionGroups: e.data.conditionGroups.map((g, gi) =>
+                        gi === groupIndex
+                            ? { ...g, conditions: g.conditions.filter((_, ci) => ci !== conditionIndex) }
+                            : g
+                      )}}
+                    : e
+            )
+        );
+        setIsSaved(false);
+    }
+
+    //---------- NODE DATA ----------//
+    const onDataChange = (field: keyof NodeData, value: string|ContentItem[]|ConditionGroup[]) => {
+        if (!current) return;
+
+        if(isNode(current)) {
+            storyData.setNodes((nodes) =>
+                nodes.map((n) =>
+                    current?.id === n.id
+                        ? { ...n, data: { ...n.data, [field]: value}}
+                        : n
+                )
+            );
+        } else {
+            storyData.setEdges((edges) =>
+                edges.map((e) =>
+                    current?.id === e.id
+                        ? { ...e, data: { ...e.data, [field]: value}}
+                        : e
+                )
+            );
+        }
+        setIsSaved(false);
+    }
     const onAddParagraph = () => {
-        setNodes((nodes) =>
+        if (!current) return;
+
+        storyData.setNodes((nodes) =>
             nodes.map((n: StoryNode) =>
-                currentNode?.id === n.id
+                current?.id === n.id
                     ? { ...n, data: { ...n.data, content: [...n.data.content, { type: 'paragraph', content: '' }]}}
                     : n
             )
@@ -166,18 +219,33 @@ function EditorFlow() {
 
     //---------- VARIABLE ----------//
     const onVariableChange = (index: number, field: keyof Variable, value: string | number | boolean) => {
-        setVariables((vars) => vars.map((v, i) => i === index ? { ...v, [field]: value } : v));
+        storyData.setVariables((vars) => vars.map((v, i) => i === index ? { ...v, [field]: value } : v));
         setIsSaved(false);
     }
     const onAddVariable = () => {
-        setVariables((vars) => [
+        storyData.setVariables((vars) => [
             ...vars,
             { label: '', type: 'text', value: '', visible: false}
         ]);
         setIsSaved(false);
     }
     const onRemoveVariable = (index: number) => {
-        setVariables(variables.filter((_, i) => i !== index))
+        const variableToDelete = storyData.variables.filter((_, i) => i === index).at(0);
+        if (!variableToDelete) return;
+
+        storyData.setVariables(storyData.variables.filter((_, i) => i !== index))
+        storyData.setEdges((edges) =>
+            edges.map((e) => ({
+                ...e,
+                data: {
+                    ...e.data,
+                    conditions: e.data.conditionGroups.map((g) => ({
+                        ...g,
+                        conditions: g.conditions.filter((c) => c.label !== variableToDelete.label)
+                    }))
+                }
+            }))
+        );
         setIsSaved(false);
     }
 
@@ -194,26 +262,26 @@ function EditorFlow() {
     );
     const onSelectionChange = useCallback(
         ({ nodes: selectedNodes, edges: selectedEdges }: OnSelectionChangeParams) => {
-            if (selectedNodes.length > 0) setCurrentNodeId(selectedNodes.at(0)?.id);
-            else setCurrentNodeId(undefined);
+            if (selectedNodes.length > 0 || selectedEdges.length > 0) setCurrentId(selectedNodes.at(0)?.id ?? selectedEdges.at(0)?.id);
+            else setCurrentId(undefined);
 
             // TODO: EDGES
         }, []
     );
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => {
-            setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot) as StoryNode[])
+            storyData.setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot) as StoryNode[])
             setIsSaved(false);
         }, []
     );
     const onEdgesChange = useCallback(
         (changes: EdgeChange[]) => {
-            setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot))
+            storyData.setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot) as StoryEdge[])
             setIsSaved(false);
         }, []
     );
     const onConnect = useCallback((params: Connection) => {
-            setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot))
+            storyData.setEdges((edgesSnapshot) => addEdge({ ...params, data: { conditionGroups: [] } }, edgesSnapshot) as StoryEdge[])
             setIsSaved(false);
         }, []
     );
@@ -224,8 +292,8 @@ function EditorFlow() {
         <div className="relative">
             <header className="h-16 flex justify-between border-b px-4 bg-white">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-3xl capitalize">{story?.title}</h1>
-                    { !isSaved && <button onClick={save} className="btn-primary">Sauvegarder</button> }
+                    <h1 className="text-3xl capitalize">{storyData.story?.title}</h1>
+                    { !isSaved && <button onClick={async () => setIsSaved(await storyData.save(id as string))} className="btn-primary">Sauvegarder</button> }
                     { isSaved && <button className="font-bold text-gray-300 p-2">Sauvegardé</button>}
                 </div>
             </header>
@@ -248,8 +316,8 @@ function EditorFlow() {
             {/* Main content : flow */}
             <div ref={flowWrapperRef} style={{ height: 'calc(100vh - 4rem)' }} className={`text-black relative ${pendingNode ? '**:cursor-pointer!' : ''}`}>
                 <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
+                    nodes={storyData.nodes}
+                    edges={storyData.edges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
@@ -318,9 +386,15 @@ function EditorFlow() {
 
                 { panel === 'content' &&
                     <ContentPanel
-                        node={currentNode}
+                        element={current as StoryNode}
+                        variables={storyData.variables}
                         onDataChange={onDataChange}
+                        onFieldChange={onFieldChange}
                         onAddParagraph={onAddParagraph}
+                        onAddGroup={onAddGroup}
+                        onAddCondition={onAddCondition}
+                        onRemoveGroup={onRemoveGroup}
+                        onRemoveCondition={onRemoveCondition}
                     />
                 }
                 { panel === 'settings' &&
@@ -332,7 +406,7 @@ function EditorFlow() {
 
                 { panel === 'state' &&
                     <VariablePanel
-                        variables={variables}
+                        variables={storyData.variables}
                         onAddVariable={onAddVariable}
                         onRemoveVariable={onRemoveVariable}
                         onVariableChange={onVariableChange}
@@ -344,8 +418,8 @@ function EditorFlow() {
                         <p>- Modifier titre</p>
                         <p>- Modifier couverture</p>
                         <br />
-                        <p>Créé le {new Date(story?.createdAt ?? '').toLocaleString()}</p>
-                        <p>Mis à jour le {new Date(story?.updatedAt ?? '').toLocaleString()}</p>
+                        <p>Créé le {new Date(storyData.story?.createdAt ?? '').toLocaleString()}</p>
+                        <p>Mis à jour le {new Date(storyData.story?.updatedAt ?? '').toLocaleString()}</p>
                     </div>
                 }
             </div>
