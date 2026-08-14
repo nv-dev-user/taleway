@@ -25,27 +25,27 @@ export default function useEditorCallbacks(
         ({ nodes: selectedNodes, edges: selectedEdges }: OnSelectionChangeParams) => {
             if (selectedNodes.length > 0 || selectedEdges.length > 0) panelContent.setCurrentId(selectedNodes.at(0)?.id ?? selectedEdges.at(0)?.id);
             else panelContent.setCurrentId(undefined);
-        }, []
+        }, [panelContent]
     );
 
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => {
             storyData.setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot) as StoryNode[])
             setIsSaved(false);
-        }, [storyData]
+        }, [storyData, setIsSaved]
     );
 
     const onEdgesChange = useCallback(
         (changes: EdgeChange[]) => {
             storyData.setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot) as StoryEdge[])
             setIsSaved(false);
-        }, [storyData]
+        }, [storyData, setIsSaved]
     );
 
     const onConnect = useCallback((params: Connection) => {
             storyData.setEdges((edgesSnapshot) => addEdge({ ...params, data: { conditionGroups: [] } }, edgesSnapshot) as StoryEdge[])
             setIsSaved(false);
-        }, [storyData]
+        }, [storyData, setIsSaved]
     );
 
     return {

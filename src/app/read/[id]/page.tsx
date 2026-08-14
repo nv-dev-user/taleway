@@ -48,7 +48,7 @@ export default function ReadPage() {
                 )
             }
         });
-    }, [id]);
+    }, [id, router]);
 
     const next = (id: string) => {
         if (!story) {

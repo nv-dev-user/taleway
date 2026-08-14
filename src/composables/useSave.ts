@@ -1,4 +1,4 @@
-import { Story, StoryNode, Variable } from "@/types";
+import { Variable } from "@/types";
 
 // ! Ici sera la sauvegarde et le chargement vers la DB. On utilise localStorage pour le moment (MVP)
 export const saveBookmark = (storyTitle: string, variables: Variable[], currentPageId: string) => {

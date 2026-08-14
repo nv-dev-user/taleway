@@ -82,14 +82,14 @@ function EditorFlow() {
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-    }, [pendingNode, storyData])
+    }, [id, pendingNode, storyData, setGhostPosition, setPendingNode])
 
     useEffect(() => {
         startTransition(async () => {
             await storyData.load(id as string);
             setIsLoading(false);
         })
-    }, [id])
+    }, [storyData, id])
 
     if (isLoading) return (<div></div>)
 

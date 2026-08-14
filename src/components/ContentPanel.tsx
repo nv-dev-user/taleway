@@ -41,8 +41,8 @@ export default function ContentPanel ({ element, variables, onDataChange, onAddP
 
     const onContentChanged = (index: number, newContent: string) => {
         if (!isNode(element)) return;
-        element.data.content[index].content = newContent;
-        onDataChange('content', element.data.content)
+        const els = element.data.content.map((c, i) => i === index ? { ...c, content: newContent } : c);
+        onDataChange('content', els)
     }
 
     const onContentRemoved = (index: number) => {

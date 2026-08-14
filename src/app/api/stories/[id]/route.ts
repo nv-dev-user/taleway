@@ -2,8 +2,7 @@
 
 import { db } from "@/lib/db"
 import { stories } from "@/lib/schema"
-import { GraphData, Story, StoryEdge, StoryNode, Variable } from "@/types";
-import { Edge, Node } from "@xyflow/react";
+import { GraphData, StoryEdge, StoryNode, Variable } from "@/types";
 import { eq } from "drizzle-orm"
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -14,7 +13,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
         if (!story) return Response.json({ message: "The story does not exist" }, { status: 404 });
         else return Response.json({ story });
-    } catch (e) {
+    } catch {
         return Response.json({ message: "An error occured. Please try again." }, { status: 500 });
     }
 }
@@ -49,7 +48,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }).where(eq(stories.id, Number(id)));
 
         return Response.json({})
-    } catch (e) {
+    } catch {
         return Response.json({ message: "An error occured. Please try again." }, { status: 500 });
     }
 }

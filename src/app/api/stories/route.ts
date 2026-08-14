@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     try {
         const row = await db.insert(stories).values({ title })
         return Response.json({ id: row.lastInsertRowid }, { status: 201 })
-    } catch (e) {
+    } catch {
         return Response.json({ message: "An error occured. Please try again."}, { status: 500 })
     }
 }
