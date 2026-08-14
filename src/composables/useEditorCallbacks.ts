@@ -1,0 +1,64 @@
+"use client"
+
+import { StoryEdge, StoryNode } from "@/types";
+import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, EdgeChange, NodeChange, OnSelectionChangeParams } from "@xyflow/react";
+import { useCallback, useMemo, useState } from "react";
+import useStoryData from "./useStoryData";
+
+export default function useEditorCallbacks(storyData: ReturnType<typeof useStoryData>) {
+    const [isSaved, setIsSaved] = useState<boolean>(true);
+    const [currentId, setCurrentId] = useState<string|undefined>(undefined)
+    const current = useMemo(
+        () => storyData.nodes.find((n) => n.id === currentId) ?? storyData.edges.find((e) => e.id === currentId),
+        [storyData.nodes, storyData.edges, currentId]
+    )
+
+    const onBeforeDelete = useCallback(
+        async ({nodes, edges}: { nodes: StoryNode[], edges: StoryEdge[] })  => {
+            if (!nodes.length && !edges.length) return false;
+            const confirmation = window.confirm(
+                `You are about to delete ${nodes.length ? `${nodes.length} nodes` : ''}${nodes.length > 0 && edges.length > 0 ? 'and' : ''}${edges.length ? `${edges.length} edges` : ''}. Do you confirm ?`
+            )
+            return confirmation;
+        }, []
+    );
+
+    const onSelectionChange = useCallback(
+        ({ nodes: selectedNodes, edges: selectedEdges }: OnSelectionChangeParams) => {
+            if (selectedNodes.length > 0 || selectedEdges.length > 0) setCurrentId(selectedNodes.at(0)?.id ?? selectedEdges.at(0)?.id);
+            else setCurrentId(undefined);
+        }, []
+    );
+
+    const onNodesChange = useCallback(
+        (changes: NodeChange[]) => {
+            storyData.setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot) as StoryNode[])
+            setIsSaved(false);
+        }, [storyData]
+    );
+
+    const onEdgesChange = useCallback(
+        (changes: EdgeChange[]) => {
+            storyData.setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot) as StoryEdge[])
+            setIsSaved(false);
+        }, [storyData]
+    );
+
+    const onConnect = useCallback((params: Connection) => {
+            storyData.setEdges((edgesSnapshot) => addEdge({ ...params, data: { conditionGroups: [] } }, edgesSnapshot) as StoryEdge[])
+            setIsSaved(false);
+        }, [storyData]
+    );
+
+    return {
+        isSaved,
+        setIsSaved,
+        current,
+        // ---
+        onBeforeDelete,
+        onSelectionChange,
+        onNodesChange,
+        onEdgesChange,
+        onConnect
+    }
+}

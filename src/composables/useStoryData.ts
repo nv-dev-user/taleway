@@ -61,7 +61,7 @@ export default function useStoryData() {
         setEdges,
         variables,
         setVariables,
-        // ----
+        // ---
         save,
         load
     }

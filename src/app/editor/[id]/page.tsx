@@ -1,10 +1,10 @@
 "use client"
 
-import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, Edge, EdgeChange, EdgeTypes, isNode, Node, NodeChange, NodeTypes, OnBeforeDelete, OnDelete, OnSelectionChangeParams, ReactFlow, ReactFlowProvider, useReactFlow } from "@xyflow/react";
-import { useParams, useRouter } from "next/navigation";
-import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import { isNode, ReactFlow, ReactFlowProvider, useReactFlow } from "@xyflow/react";
+import { useParams } from "next/navigation";
+import { startTransition, useEffect, useRef, useState } from "react";
 import '@xyflow/react/dist/style.css';
-import { ConditionGroup, ContentItem, NodeData, Story, StoryEdge, StoryNode, Variable } from "@/types";
+import { ConditionGroup, ContentItem, NodeData, StoryEdge, StoryNode, Variable } from "@/types";
 import VariablePanel from "@/components/VariablePanel";
 import { Icon } from "@iconify/react";
 import StartNode from "@/components/nodes/StartNode";
@@ -12,6 +12,7 @@ import EndNode from "@/components/nodes/EndNode";
 import PageNode from "@/components/nodes/PageNode";
 import ContentPanel from "@/components/ContentPanel";
 import useStoryData from "@/composables/useStoryData";
+import useEditorCallbacks from "@/composables/useEditorCallbacks";
 
 const nodeTypes = {
     startNode: StartNode,
@@ -31,13 +32,18 @@ function EditorFlow() {
     const { id } = useParams();
 
     const storyData = useStoryData()
+    const {
+        isSaved,
+        setIsSaved,
+        current,
+        onBeforeDelete,
+        onSelectionChange,
+        onNodesChange,
+        onEdgesChange,
+        onConnect
+    } = useEditorCallbacks(storyData);
 
     const [isLoading, setIsLoading] = useState<boolean>(true)
-
-    const [isSaved, setIsSaved] = useState<boolean>(true);
-
-    const [currentId, setCurrentId] = useState<string|undefined>(undefined)
-    const current = storyData.nodes.find((n) => n.id === currentId) ?? storyData.edges.find((e) => e.id === currentId);
 
     const [pendingNode, setPendingNode] = useState<'pageNode' | 'endNode' | null>(null)
     const [ghostPosition, setGhostPosition] = useState<{ x: number, y: number } | null>(null)
@@ -250,41 +256,7 @@ function EditorFlow() {
     }
 
     //---------- FLOW ----------//
-    const onBeforeDelete = useCallback(
-        async ({nodes, edges}: { nodes: StoryNode[], edges: Edge[] })  => {
-            if (!nodes.length && !edges.length) return false;
-            const confirmation = window.confirm(
-                `You are about to delete ${nodes.length ? `${nodes.length} nodes` : ''}${nodes.length > 0 && edges.length > 0 ? 'and' : ''}${edges.length ? `${edges.length} edges` : ''}. Do you confirm ?`
-            )
-
-            return confirmation;
-        }, []
-    );
-    const onSelectionChange = useCallback(
-        ({ nodes: selectedNodes, edges: selectedEdges }: OnSelectionChangeParams) => {
-            if (selectedNodes.length > 0 || selectedEdges.length > 0) setCurrentId(selectedNodes.at(0)?.id ?? selectedEdges.at(0)?.id);
-            else setCurrentId(undefined);
-
-            // TODO: EDGES
-        }, []
-    );
-    const onNodesChange = useCallback(
-        (changes: NodeChange[]) => {
-            storyData.setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot) as StoryNode[])
-            setIsSaved(false);
-        }, []
-    );
-    const onEdgesChange = useCallback(
-        (changes: EdgeChange[]) => {
-            storyData.setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot) as StoryEdge[])
-            setIsSaved(false);
-        }, []
-    );
-    const onConnect = useCallback((params: Connection) => {
-            storyData.setEdges((edgesSnapshot) => addEdge({ ...params, data: { conditionGroups: [] } }, edgesSnapshot) as StoryEdge[])
-            setIsSaved(false);
-        }, []
-    );
+    
 
     if (isLoading) return (<div></div>)
 
