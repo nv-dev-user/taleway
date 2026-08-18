@@ -45,7 +45,7 @@ body {
 }
 
 #parchment {
-  @apply px-7;
+  @apply px-7 relative;
   background: #f8f8ed;
 }
 

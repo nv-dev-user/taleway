@@ -80,13 +80,17 @@ export default function ReadPage() {
                 </button>
             </header>
 
-            <main className="flex flex-col flex-1 gap-4 text-justify pt-4" id="parchment">
-                <div className="flex-1 flex flex-col gap-4">
+            <main className="flex flex-col flex-1 items-center gap-4 pt-4" id="parchment">
+                <div className="flex-1 flex flex-col gap-4 text-justify w-[50%]">
                     { currentPage?.data.content.map((c, index) => {
                         if (c.type === 'paragraph') return (
                             <p key={index}>
                                 { replaceVariables(variables ?? [], c.content) }
                             </p>
+                        )
+
+                        if (c.type === 'image') return (
+                            <img key={index} src={c.content} />
                         )
                     })}
                 </div>
@@ -95,7 +99,7 @@ export default function ReadPage() {
                     currentPage &&
                     story?.graph?.edges &&
                     getChoices(story?.graph.edges ?? [], currentPage, variables).map(choice => (
-                        <button className="btn-primary" key={choice.id} onClick={() => next(choice.target)}>{choice.label}</button>
+                        <button className="btn-primary w-[50%]" key={choice.id} onClick={() => next(choice.target)}>{choice.label}</button>
                     ))
                 }
             </main>

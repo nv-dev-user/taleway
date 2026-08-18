@@ -1,6 +1,15 @@
 import { db } from "@/lib/db"
 import { stories } from "@/lib/schema"
 
+export async function GET() {
+    try {
+        const storiesData = await db.select().from(stories)
+        return Response.json({ stories: storiesData }, { status: 200 })
+    } catch {
+        return Response.json({ message: "An error occured. Please try again." }, { status: 500 })
+    }
+}
+
 export async function POST(req: Request) {
     const data = await req.json()
 

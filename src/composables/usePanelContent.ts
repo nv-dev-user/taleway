@@ -123,12 +123,24 @@ export default function usePanelContent(
 
         storyData.setNodes((nodes) =>
             nodes.map((n: StoryNode) =>
-                current?.id === n.id
-                    ? { ...n, data: { ...n.data, content: [...n.data.content, { type: 'paragraph', content: '' }]}}
+                current.id === n.id
+                    ? { ...n, data: { ...n.data, content: [...n.data.content, { type: 'paragraph', content: '' }] }}
                     : n
             )
         );
         setIsSaved(false);
+    }
+    const onAddImage = () => {
+        if (!current) return;
+
+        storyData.setNodes((nodes) =>
+            nodes.map((n: StoryNode) =>
+                current.id === n.id
+                    ? { ...n, data: { ...n.data, content: [...n.data.content, { type: 'image', content: '' }] }}
+                    : n
+            )
+        )
+        setIsSaved(false)
     }
 
     //---------- VARIABLE ----------//
@@ -153,7 +165,7 @@ export default function usePanelContent(
                 ...e,
                 data: {
                     ...e.data,
-                    conditions: e.data.conditionGroups.map((g) => ({
+                    conditionGroups: e.data.conditionGroups.map((g) => ({
                         ...g,
                         conditions: g.conditions.filter((c) => c.label !== variableToDelete.label)
                     }))
@@ -175,6 +187,7 @@ export default function usePanelContent(
         onRemoveCondition,
         onDataChange,
         onAddParagraph,
+        onAddImage,
         onVariableChange,
         onAddVariable,
         onRemoveVariable

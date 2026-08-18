@@ -89,7 +89,7 @@ function EditorFlow() {
             await storyData.load(id as string);
             setIsLoading(false);
         })
-    }, [storyData, id])
+    }, [])
 
     if (isLoading) return (<div></div>)
 
@@ -196,6 +196,7 @@ function EditorFlow() {
                         onDataChange={panelContent.onDataChange}
                         onFieldChange={panelContent.onFieldChange}
                         onAddParagraph={panelContent.onAddParagraph}
+                        onAddImage={panelContent.onAddImage}
                         onAddGroup={panelContent.onAddGroup}
                         onAddCondition={panelContent.onAddCondition}
                         onRemoveGroup={panelContent.onRemoveGroup}

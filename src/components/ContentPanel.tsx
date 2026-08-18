@@ -1,13 +1,17 @@
 import { Condition, ConditionGroup, ContentItem, EdgeData, NodeData, StoryEdge, StoryNode, Variable } from "@/types"
 import { Icon } from "@iconify/react"
 import { isEdge, isNode } from "@xyflow/react"
+import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react"
+import SortableContentItem from "./SortableContentItem"
 
 interface ContentPanelProps {
     element: StoryNode|StoryEdge|undefined
     variables: Variable[]
+
     onDataChange: (field: keyof NodeData|keyof EdgeData, value: string|ContentItem[]|ConditionGroup[]) => void
     onFieldChange: (field: keyof StoryNode|keyof StoryEdge, value: string) => void
     onAddParagraph: () => void
+    onAddImage: () => void
 
     onAddGroup: () => void
     onAddCondition: (groupIndex: number) => void
@@ -15,8 +19,18 @@ interface ContentPanelProps {
     onRemoveCondition: (groupIndex: number, conditionIndex: number) => void
 }
 
-export default function ContentPanel ({ element, variables, onDataChange, onAddParagraph, onFieldChange, onAddGroup, onAddCondition, onRemoveGroup, onRemoveCondition }: ContentPanelProps) {
-
+export default function ContentPanel ({
+    element,
+    variables,
+    onDataChange,
+    onAddParagraph,
+    onAddImage,
+    onFieldChange,
+    onAddGroup,
+    onAddCondition,
+    onRemoveGroup,
+    onRemoveCondition
+}: ContentPanelProps) {
     if (!element) return (
         <div className="flex h-full justify-center items-center">
             <p>Select a node or an edge to edit its content</p>
@@ -51,6 +65,21 @@ export default function ContentPanel ({ element, variables, onDataChange, onAddP
         onDataChange('content', newContentArray)
     }
 
+    const handleDragEnd = (event: DragEndEvent) => {
+        if (!isNode(element)) return;
+        const { source, target } = event.operation;
+        if (!source || !target) return;
+
+        const fromIndex = source.data.index as number;
+        const toIndex = target.data.index as number;
+        if (fromIndex === toIndex) return;
+
+        const newContent = [...element.data.content];
+        const [moved] = newContent.splice(fromIndex, 1);
+        newContent.splice(toIndex, 0, moved);
+        onDataChange('content', newContent);
+    }
+
     return (
         <div className="relative h-full">
             <input
@@ -63,28 +92,72 @@ export default function ContentPanel ({ element, variables, onDataChange, onAddP
             />
 
             <div className="flex flex-col gap-4">
-                { isNode(element) && element.data.content.map((c, index) => {
-                    if (c.type === 'paragraph') return (
-                        <div key={index} className="flex gap-2 items-center">
-                            <button className="cursor-pointer flex items-center h-10 w-10 justify-center hover:bg-gray-100 py-1" onClick={() => onContentRemoved(index)}>
-                                <Icon icon="mdi:trash-can" className="text-red-500" />
-                            </button>
-                            <textarea
-                                ref={(el) => {
-                                    if (el) {
-                                        el.style.height = 'auto';
-                                        el.style.height = `${el.scrollHeight}px`;
-                                    }
-                                }}
-                                className="w-full min-h-10 resize-none textarea-primary h-fit overflow-hidden"
-                                value={element.data.content[index].content}
-                                onChange={(e) => onContentChanged(index, e.currentTarget.value)}
-                            />
-                        </div>
-                    )
+                { isNode(element) && (
+                    <DragDropProvider onDragEnd={handleDragEnd}>
+                        {element.data.content.map((c, index) => {
+                            const id = `content-${index}`;
 
-                    // TODO: Image + Sound/Music
-                })}
+                            if (c.type === 'paragraph') return (
+                                <SortableContentItem key={id} id={id} index={index} onRemove={() => onContentRemoved(index)}>
+                                    <textarea
+                                        ref={(el) => {
+                                            if (el) {
+                                                el.style.height = 'auto';
+                                                el.style.height = `${el.scrollHeight}px`;
+                                            }
+                                        }}
+                                        className={`hover:border hover:border-black w-full min-h-10 resize-none textarea-primary h-fit overflow-hidden ${
+                                            element.data.content[index].content ? 'border-transparent' : 'border'
+                                        }`}
+                                        value={element.data.content[index].content}
+                                        onChange={(e) => onContentChanged(index, e.currentTarget.value)}
+                                    />
+                                </SortableContentItem>
+                            )
+
+                            if (c.type === 'image') return (
+                                <SortableContentItem key={id} id={id} index={index} onRemove={() => onContentRemoved(index)}>
+                                    <div className="relative group overflow-hidden object-cover rounded flex justify-center items-center">
+                                        {c.content && (
+                                            <>
+                                                <img src={c.content} className="relative w-full object-cover rounded" />
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors rounded" />
+                                            </>
+                                        )}
+                                        {!c.content && (
+                                            <div className="relative h-50 w-full bg-gray-100 rounded flex items-center justify-center">
+                                                <span className="text-gray-400 text-sm">No image</span>
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors rounded" />
+                                            </div>
+                                        )}
+                                        <label htmlFor={`image-${index}`} className="hidden group-hover:flex cursor-pointer absolute hover:bg-gray-100 p-2 items-center justify-center rounded-full gap-2 h-10 w-10">
+                                            <Icon icon="mdi:upload" className="size-10" />
+                                        </label>
+                                        <input
+                                            id={`image-${index}`}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0]
+                                                if (!file) return
+                                                if (file.size > 2 * 1024 * 1024) {
+                                                    alert('Image trop lourde (max 2MB)')
+                                                    return
+                                                }
+                                                const reader = new FileReader()
+                                                reader.onload = () => onContentChanged(index, reader.result as string)
+                                                reader.readAsDataURL(file)
+                                            }}
+                                        />
+                                    </div>
+                                </SortableContentItem>
+                            )
+
+                            // TODO: Sound/Music
+                        })}
+                    </DragDropProvider>
+                )}
 
                 { isEdge(element) && element.data.conditionGroups.map((group, groupIndex) => (
                     <div key={groupIndex}>
@@ -167,11 +240,17 @@ export default function ContentPanel ({ element, variables, onDataChange, onAddP
             </div>
             { isNode(element) &&
                 <div className="absolute bottom-0 right-0 grid gap-2 grid-cols-12 w-full">
-                    <button className="btn-primary flex gap-2 items-center col-span-4 justify-center" onClick={onAddParagraph}>
+                    <button
+                        className="btn-primary flex gap-2 items-center col-span-4 justify-center"
+                        onClick={onAddParagraph}
+                    >
                         <Icon icon="mdi:plus-circle-outline" className="size-5" />
                         <span className="text-sm">Paragraph</span>
                     </button>
-                    <button className="btn-primary-disabled flex gap-2 items-center col-span-4 justify-center">
+                    <button
+                        className="btn-primary flex gap-2 items-center col-span-4 justify-center"
+                        onClick={onAddImage}
+                    >
                         <Icon icon="mdi:plus-circle-outline" className="size-5" />
                         <span className="text-xs">Image</span>
                     </button>
