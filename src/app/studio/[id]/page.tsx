@@ -11,10 +11,13 @@ import StartNode from "@/components/nodes/StartNode";
 import EndNode from "@/components/nodes/EndNode";
 import PageNode from "@/components/nodes/PageNode";
 import ContentPanel from "@/components/ContentPanel";
+import TriggersPanel from "@/components/TriggersPanel";
 import useStoryData from "@/composables/useStoryData";
 import useEditorCallbacks from "@/composables/useEditorCallbacks";
 import useEditorFlow from "@/composables/useEditorFlow";
 import usePanelContent from "@/composables/usePanelContent";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const nodeTypes = {
     startNode: StartNode,
@@ -32,6 +35,7 @@ export default function EditorPage() {
 
 function EditorFlow() {
     const { id } = useParams();
+    const router = useRouter()
 
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [isSaved, setIsSaved] = useState<boolean>(true);
@@ -42,6 +46,8 @@ function EditorFlow() {
         | 'hidden'
         | 'global-settings'
         | 'settings'
+        | 'soundboard'
+        | 'triggers'
     >('content');
 
     const storyData = useStoryData()
@@ -97,9 +103,18 @@ function EditorFlow() {
         <div className="relative">
             <header className="h-16 flex justify-between border-b px-4 bg-white">
                 <div className="flex items-center gap-4">
+                    <button className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/studio')}>
+                        <Icon icon="mdi:chevron-left-circle" className="size-8" />
+                        <span className="font-bold">Quitter</span>
+                    </button>
                     <h1 className="text-3xl capitalize">{storyData.story?.title}</h1>
                     { !isSaved && <button onClick={async () => setIsSaved(await storyData.save(id as string))} className="btn-primary">Sauvegarder</button> }
                     { isSaved && <button className="font-bold text-gray-300 p-2">Sauvegardé</button>}
+                </div>
+                <div className="flex items-center">
+                    <Link href={`/studio/${id}/debug`}>
+                        <Icon icon="mdi:bug-play" className="size-10 text-green-700"/>
+                    </Link>
                 </div>
             </header>
 
@@ -174,10 +189,24 @@ function EditorFlow() {
                     <Icon icon="mdi:tune-vertical" className="size-6"/>
                 </button>
 
+                {/* Open story global soundboard */}
+                <button
+                    onClick={() => setPanel('soundboard')}
+                    className={`border-l border-t cursor-pointer absolute items-center justify-center flex  bottom-24 -left-8 ${panel === 'soundboard' ? 'bg-white' : 'bg-gray-200'} w-8 h-8`}
+                >
+                    <Icon icon="mdi:speakerphone" className="size-6 text-black"/>
+                </button>
+                {/* Open triggers panel */}
+                <button
+                    onClick={() => setPanel('triggers')}
+                    className={`border-l cursor-pointer absolute items-center justify-center flex bottom-16 -left-8 ${panel === 'triggers' ? 'bg-white' : 'bg-gray-200'} w-8 h-8`}
+                >
+                    <Icon icon="mdi:flash-outline" className="size-6"/>
+                </button>
                 {/* Open story state panel : variables */}
                 <button
                     onClick={() => setPanel('state')}
-                    className={`border-l border-t cursor-pointer absolute items-center justify-center flex  bottom-8 -left-8 ${panel === 'state' ? 'bg-white' : 'bg-gray-200'} w-8 h-8`}
+                    className={`border-l cursor-pointer absolute items-center justify-center flex  bottom-8 -left-8 ${panel === 'state' ? 'bg-white' : 'bg-gray-200'} w-8 h-8`}
                 >
                     <Icon icon="mdi:cube-outline" className="size-6"/>
                 </button>
@@ -201,6 +230,9 @@ function EditorFlow() {
                         onAddCondition={panelContent.onAddCondition}
                         onRemoveGroup={panelContent.onRemoveGroup}
                         onRemoveCondition={panelContent.onRemoveCondition}
+                        onAddAssignment={panelContent.onAddAssignment}
+                        onRemoveAssignment={panelContent.onRemoveAssignment}
+                        onAssignmentChanged={panelContent.onAssignmentChanged}
                     />
                 }
                 { panel === 'settings' &&
@@ -209,7 +241,26 @@ function EditorFlow() {
                         <p>- Modifier couleur label</p>
                     </div>
                 }
-
+                {
+                    panel === 'soundboard' && (<div></div>)
+                }
+                { panel === 'triggers' &&
+                    <TriggersPanel
+                        triggers={storyData.triggers}
+                        variables={storyData.variables}
+                        nodes={storyData.nodes}
+                        onAddTrigger={panelContent.onAddTrigger}
+                        onRemoveTrigger={panelContent.onRemoveTrigger}
+                        onTriggerConditionsChanged={panelContent.onTriggerConditionsChanged}
+                        onTriggerAddGroup={panelContent.onTriggerAddGroup}
+                        onTriggerAddCondition={panelContent.onTriggerAddCondition}
+                        onTriggerRemoveGroup={panelContent.onTriggerRemoveGroup}
+                        onTriggerRemoveCondition={panelContent.onTriggerRemoveCondition}
+                        onAddAction={panelContent.onAddAction}
+                        onRemoveAction={panelContent.onRemoveAction}
+                        onActionChanged={panelContent.onActionChanged}
+                    />
+                }
                 { panel === 'state' &&
                     <VariablePanel
                         variables={storyData.variables}
@@ -223,6 +274,8 @@ function EditorFlow() {
                         <p className="text-center font-bold text-xl mb-8">Story Settings</p>
                         <p>- Modifier titre</p>
                         <p>- Modifier couverture</p>
+                        <p>- Modifier description</p>
+                        <p>- Modifier tags & catégorie</p>
                         <br />
                         <p>Créé le {new Date(storyData.story?.createdAt ?? '').toLocaleString()}</p>
                         <p>Mis à jour le {new Date(storyData.story?.updatedAt ?? '').toLocaleString()}</p>

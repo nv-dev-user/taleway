@@ -1,6 +1,6 @@
 "use client"
 
-import { Story, StoryEdge, StoryNode, Variable } from "@/types"
+import { Story, StoryEdge, StoryNode, Trigger, Variable } from "@/types"
 import { useCallback, useMemo, useState } from "react"
 
 const createDefaultNodes = (): StoryNode[] => [
@@ -14,6 +14,7 @@ export default function useStoryData() {
     const [nodes, setNodes] = useState<StoryNode[]>([]);
     const [edges, setEdges] = useState<StoryEdge[]>([]);
     const [variables, setVariables] = useState<Variable[]>([]);
+    const [triggers, setTriggers] = useState<Trigger[]>([]);
 
     const save = useCallback(async (id: string) => {
         const res = await fetch(`/api/stories/${id}`, {
@@ -23,7 +24,8 @@ export default function useStoryData() {
                 title: story?.title || '',
                 nodes,
                 edges,
-                variables
+                variables,
+                triggers
             })
         });
 
@@ -35,7 +37,7 @@ export default function useStoryData() {
         } else {
             return true;
         }
-    }, [story, nodes, edges, variables])
+    }, [story, nodes, edges, variables, triggers])
 
     const load = useCallback(async (id: string) => {
         const res = await fetch(`/api/stories/${id}`);
@@ -49,6 +51,7 @@ export default function useStoryData() {
         setNodes(data.story.graph.nodes ?? createDefaultNodes());
         setEdges(data.story.graph.edges ?? createDefaultEdges());
         setVariables(data.story.graph.variables ?? []);
+        setTriggers(data.story.graph.triggers ?? []);
         return true;
     }, [])
 
@@ -61,8 +64,9 @@ export default function useStoryData() {
         setEdges,
         variables,
         setVariables,
+        triggers,
+        setTriggers,
         // ---
-        save,
-        load
-    }), [story, nodes, edges, variables, save, load])
+        save, load
+    }), [story, nodes, edges, variables, triggers, save, load])
 }

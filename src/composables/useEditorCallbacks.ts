@@ -15,7 +15,7 @@ export default function useEditorCallbacks(
         async ({nodes, edges}: { nodes: StoryNode[], edges: StoryEdge[] })  => {
             if (!nodes.length && !edges.length) return false;
             const confirmation = window.confirm(
-                `You are about to delete ${nodes.length ? `${nodes.length} node(s)` : ''}${nodes.length > 0 && edges.length > 0 ? 'and ' : ''}${edges.length ? `${edges.length} edge(s)` : ''}. Do you confirm ?`
+                `You are about to delete ${nodes.length ? `${nodes.length} node(s)` : ''}${nodes.length > 0 && edges.length > 0 ? ' and ' : ''}${edges.length ? `${edges.length} edge(s)` : ''}. Do you confirm ?`
             )
             return confirmation;
         }, []
@@ -43,7 +43,7 @@ export default function useEditorCallbacks(
     );
 
     const onConnect = useCallback((params: Connection) => {
-            storyData.setEdges((edgesSnapshot) => addEdge({ ...params, data: { conditionGroups: [] } }, edgesSnapshot) as StoryEdge[])
+            storyData.setEdges((edgesSnapshot) => addEdge({ ...params, data: { conditionGroups: [], assignments: [] } }, edgesSnapshot) as StoryEdge[])
             setIsSaved(false);
         }, [storyData, setIsSaved]
     );

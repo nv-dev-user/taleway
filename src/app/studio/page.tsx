@@ -50,7 +50,7 @@ export default function EditorDashboardPage() {
                 {
                     stories.map((story) =>
                         <div key={story.id}>
-                            <Link href={`/editor/${story.id}`}>
+                            <Link href={`/studio/${story.id}`}>
                                 { story.title }
                             </Link>
                         </div>

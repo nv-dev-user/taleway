@@ -1,14 +1,15 @@
-import { Condition, ConditionGroup, ContentItem, EdgeData, NodeData, StoryEdge, StoryNode, Variable } from "@/types"
+import { Assignment, Condition, ConditionGroup, ContentItem, EdgeData, NodeData, StoryEdge, StoryNode, Variable } from "@/types"
 import { Icon } from "@iconify/react"
 import { isEdge, isNode } from "@xyflow/react"
 import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react"
 import SortableContentItem from "./SortableContentItem"
+import { useState } from "react"
 
 interface ContentPanelProps {
     element: StoryNode|StoryEdge|undefined
     variables: Variable[]
 
-    onDataChange: (field: keyof NodeData|keyof EdgeData, value: string|ContentItem[]|ConditionGroup[]) => void
+    onDataChange: (field: keyof NodeData|keyof EdgeData, value: string|ContentItem[]|ConditionGroup[]|Assignment[]) => void
     onFieldChange: (field: keyof StoryNode|keyof StoryEdge, value: string) => void
     onAddParagraph: () => void
     onAddImage: () => void
@@ -17,6 +18,10 @@ interface ContentPanelProps {
     onAddCondition: (groupIndex: number) => void
     onRemoveGroup: (groupIndex: number) => void
     onRemoveCondition: (groupIndex: number, conditionIndex: number) => void
+
+    onAddAssignment: () => void
+    onRemoveAssignment: (index: number) => void
+    onAssignmentChanged: (index: number, field: keyof Assignment, value: string) => void
 }
 
 export default function ContentPanel ({
@@ -29,8 +34,13 @@ export default function ContentPanel ({
     onAddGroup,
     onAddCondition,
     onRemoveGroup,
-    onRemoveCondition
+    onRemoveCondition,
+    onAddAssignment,
+    onRemoveAssignment,
+    onAssignmentChanged
 }: ContentPanelProps) {
+    const [edgeTab, setEdgeTab] = useState<'conditions' | 'assignments'>('conditions')
+
     if (!element) return (
         <div className="flex h-full justify-center items-center">
             <p>Select a node or an edge to edit its content</p>
@@ -70,8 +80,9 @@ export default function ContentPanel ({
         const { source, target } = event.operation;
         if (!source || !target) return;
 
-        const fromIndex = source.data.index as number;
-        const toIndex = target.data.index as number;
+        const fromIndex = (source as any).index;
+        const toIndex = (target as any).index;
+        if (fromIndex === undefined || toIndex === undefined) return;
         if (fromIndex === toIndex) return;
 
         const newContent = [...element.data.content];
@@ -95,7 +106,7 @@ export default function ContentPanel ({
                 { isNode(element) && (
                     <DragDropProvider onDragEnd={handleDragEnd}>
                         {element.data.content.map((c, index) => {
-                            const id = `content-${index}`;
+                            const id = c.id;
 
                             if (c.type === 'paragraph') return (
                                 <SortableContentItem key={id} id={id} index={index} onRemove={() => onContentRemoved(index)}>
@@ -106,10 +117,10 @@ export default function ContentPanel ({
                                                 el.style.height = `${el.scrollHeight}px`;
                                             }
                                         }}
-                                        className={`hover:border hover:border-black w-full min-h-10 resize-none textarea-primary h-fit overflow-hidden ${
-                                            element.data.content[index].content ? 'border-transparent' : 'border'
+                                        className={`hover:border min-h-20 hover:border-black w-full resize-none textarea-primary overflow-hidden ${
+                                            c.content ? 'border-transparent' : 'border'
                                         }`}
-                                        value={element.data.content[index].content}
+                                        value={c.content}
                                         onChange={(e) => onContentChanged(index, e.currentTarget.value)}
                                     />
                                 </SortableContentItem>
@@ -130,11 +141,11 @@ export default function ContentPanel ({
                                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors rounded" />
                                             </div>
                                         )}
-                                        <label htmlFor={`image-${index}`} className="hidden group-hover:flex cursor-pointer absolute hover:bg-gray-100 p-2 items-center justify-center rounded-full gap-2 h-10 w-10">
+                                        <label htmlFor={`image-${id}`} className="hidden group-hover:flex cursor-pointer absolute hover:bg-gray-100 p-2 items-center justify-center rounded-full gap-2 h-10 w-10">
                                             <Icon icon="mdi:upload" className="size-10" />
                                         </label>
                                         <input
-                                            id={`image-${index}`}
+                                            id={`image-${id}`}
                                             type="file"
                                             accept="image/*"
                                             className="hidden"
@@ -159,7 +170,26 @@ export default function ContentPanel ({
                     </DragDropProvider>
                 )}
 
-                { isEdge(element) && element.data.conditionGroups.map((group, groupIndex) => (
+                { isEdge(element) && (
+                    <>
+                        {/* Tab menu */}
+                        <div className="flex mb-4 border-b">
+                            <button
+                                className={`cursor-pointer flex-1 py-2 text-sm font-bold border-b-2 ${edgeTab === 'conditions' ? 'border-black' : 'text-gray-400 border-transparent'}`}
+                                onClick={() => setEdgeTab('conditions')}
+                            >
+                                Conditions
+                            </button>
+                            <button
+                                className={`cursor-pointer flex-1 py-2 text-sm font-bold ${edgeTab === 'assignments' ? 'border-b-2 border-black' : 'text-gray-400'}`}
+                                onClick={() => setEdgeTab('assignments')}
+                            >
+                                Affectations
+                            </button>
+                        </div>
+
+                        {/* Conditions tab */}
+                        {edgeTab === 'conditions' && element.data.conditionGroups.map((group, groupIndex) => (
                     <div key={groupIndex}>
                         { groupIndex > 0 && (
                             <div className="flex items-center gap-2 mb-4">
@@ -237,6 +267,63 @@ export default function ContentPanel ({
                         </div>
                     </div>
                 ))}
+
+                        {/* Assignments tab */}
+                        {edgeTab === 'assignments' && (
+                            <div className="flex flex-col gap-2">
+                                {(element.data.assignments ?? []).map((a, index) => (
+                                    <div key={index} className="flex gap-2 items-center">
+                                        <button className="cursor-pointer flex items-center h-8 w-8 justify-center hover:bg-gray-100" onClick={() => onRemoveAssignment(index)}>
+                                            <Icon icon="mdi:trash-can" className="text-red-500" />
+                                        </button>
+                                        <select
+                                            className="input-primary"
+                                            value={a.label}
+                                            onChange={(e) => onAssignmentChanged(index, 'label', e.currentTarget.value)}
+                                        >
+                                            {variables.map((v, vi) => (
+                                                <option key={vi} value={v.label}>{v.label}</option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            className="input-primary"
+                                            value={a.operation}
+                                            onChange={(e) => onAssignmentChanged(index, 'operation', e.currentTarget.value)}
+                                        >
+                                            <option value="=">set to</option>
+                                            {getVariableByLabel(a.label)?.type === 'number' && (
+                                                <>
+                                                    <option value="+=">add</option>
+                                                    <option value="-=">subtract</option>
+                                                </>
+                                            )}
+                                        </select>
+
+                                        {getVariableByLabel(a.label)?.type === 'boolean' && (
+                                            <select
+                                                className="input-primary"
+                                                value={a.value}
+                                                onChange={(e) => onAssignmentChanged(index, 'value', e.currentTarget.value)}
+                                            >
+                                                <option value="true">true</option>
+                                                <option value="false">false</option>
+                                            </select>
+                                        )}
+                                        {getVariableByLabel(a.label)?.type !== 'boolean' && getVariableByLabel(a.label)?.type !== undefined && (
+                                            <input
+                                                className="input-primary"
+                                                type={getVariableByLabel(a.label)?.type}
+                                                value={a.value}
+                                                onChange={(e) => onAssignmentChanged(index, 'value', e.currentTarget.value)}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
             { isNode(element) &&
                 <div className="absolute bottom-0 right-0 grid gap-2 grid-cols-12 w-full">
@@ -264,10 +351,17 @@ export default function ContentPanel ({
                 <div className="absolute bottom-0 right-0 grid grid-cols-12 w-full">
                     <div className="col-span-4"></div>
                     <div className="col-span-4"></div>
-                    <button className={`${variables.filter((v) => v.label !== '').length > 0 ? 'btn-primary' : 'btn-primary-disabled'} flex gap-2 items-center col-span-4 justify-center`} onClick={onAddGroup}>
-                        <Icon icon="mdi:plus-circle-outline" className="size-5" />
-                        <span className="text-sm">Group</span>
-                    </button>
+                    {edgeTab === 'conditions' ? (
+                        <button className={`${variables.filter((v) => v.label !== '').length > 0 ? 'btn-primary' : 'btn-primary-disabled'} flex gap-2 items-center col-span-4 justify-center`} onClick={onAddGroup}>
+                            <Icon icon="mdi:plus-circle-outline" className="size-5" />
+                            <span className="text-sm">Group</span>
+                        </button>
+                    ) : (
+                        <button className={`${variables.filter((v) => v.label !== '').length > 0 ? 'btn-primary' : 'btn-primary-disabled'} flex gap-2 items-center col-span-4 justify-center`} onClick={onAddAssignment}>
+                            <Icon icon="mdi:plus-circle-outline" className="size-5" />
+                            <span className="text-sm">Affectation</span>
+                        </button>
+                    )}
                 </div>
             }
         </div>

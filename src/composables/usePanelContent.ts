@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import useStoryData from "./useStoryData";
 import { isNode } from "@xyflow/react";
-import { ConditionGroup, ContentItem, NodeData, StoryEdge, StoryNode, Variable } from "@/types";
+import { ConditionGroup, ContentItem, NodeData, StoryEdge, StoryNode, Variable, Assignment, Trigger, Condition, TriggerAction } from "@/types";
 
 export default function usePanelContent(
     storyData: ReturnType<typeof useStoryData>,
@@ -44,7 +44,7 @@ export default function usePanelContent(
         storyData.setEdges((edges) =>
             edges.map((e) =>
                 current?.id === e.id
-                    ? { ...e, data: { conditionGroups: [...e.data.conditionGroups, { conditions: [] }]}}
+                    ? { ...e, data: { ...e.data, conditionGroups: [...e.data.conditionGroups, { conditions: [] }] }}
                     : e
             )
         );
@@ -58,7 +58,7 @@ export default function usePanelContent(
         storyData.setEdges((edges) =>
             edges.map((e) =>
                 current?.id === e.id
-                    ? { ...e, data: { conditionGroups: e.data.conditionGroups.map((g, gi) =>
+                    ? { ...e, data: { ...e.data, conditionGroups: e.data.conditionGroups.map((g, gi) =>
                         gi === groupIndex
                             ? { ...g, conditions: [...g.conditions, { label: firstValidVariable.label, operation: '==', value: '' }]}
                             : g
@@ -73,7 +73,7 @@ export default function usePanelContent(
         storyData.setEdges((edges) =>
             edges.map((e) =>
                 current?.id === e.id
-                    ? { ...e, data: { conditionGroups: e.data.conditionGroups.filter((_, gi) => gi !== groupIndex) }}
+                    ? { ...e, data: { ...e.data, conditionGroups: e.data.conditionGroups.filter((_, gi) => gi !== groupIndex) }}
                     : e
             )
         );
@@ -84,7 +84,7 @@ export default function usePanelContent(
         storyData.setEdges((edges) =>
             edges.map((e) =>
                 current?.id === e.id
-                    ? { ...e, data: { conditionGroups: e.data.conditionGroups.map((g, gi) =>
+                    ? { ...e, data: { ...e.data, conditionGroups: e.data.conditionGroups.map((g, gi) =>
                         gi === groupIndex
                             ? { ...g, conditions: g.conditions.filter((_, ci) => ci !== conditionIndex) }
                             : g
@@ -95,8 +95,48 @@ export default function usePanelContent(
         setIsSaved(false);
     }
 
+    //---------- ASSIGNMENT ----------//
+    const onAddAssignment = () => {
+        if (!current) return;
+        const firstValidVariable = storyData.variables.filter((v) => v.label !== '').at(0);
+        if (!firstValidVariable) return;
+
+        storyData.setEdges((edges) =>
+            edges.map((e) =>
+                current?.id === e.id
+                    ? { ...e, data: { ...e.data, assignments: [...(e.data.assignments ?? []), { label: firstValidVariable.label, operation: '=', value: '' }] }}
+                    : e
+            )
+        );
+        setIsSaved(false);
+    }
+    const onRemoveAssignment = (index: number) => {
+        if (!current) return;
+        storyData.setEdges((edges) =>
+            edges.map((e) =>
+                current?.id === e.id
+                    ? { ...e, data: { ...e.data, assignments: (e.data.assignments ?? []).filter((_, i) => i !== index) }}
+                    : e
+            )
+        );
+        setIsSaved(false);
+    }
+    const onAssignmentChanged = (index: number, field: keyof Assignment, value: string) => {
+        if (!current) return;
+        storyData.setEdges((edges) =>
+            edges.map((e) =>
+                current?.id === e.id
+                    ? { ...e, data: { ...e.data, assignments: (e.data.assignments ?? []).map((a, i) =>
+                        i === index ? { ...a, [field]: value } : a
+                      )}}
+                    : e
+            )
+        );
+        setIsSaved(false);
+    }
+
     //---------- NODE DATA ----------//
-    const onDataChange = (field: keyof NodeData, value: string|ContentItem[]|ConditionGroup[]) => {
+    const onDataChange = (field: keyof NodeData, value: string|ContentItem[]|ConditionGroup[]|Assignment[]) => {
         if (!current) return;
 
         if(isNode(current)) {
@@ -124,7 +164,7 @@ export default function usePanelContent(
         storyData.setNodes((nodes) =>
             nodes.map((n: StoryNode) =>
                 current.id === n.id
-                    ? { ...n, data: { ...n.data, content: [...n.data.content, { type: 'paragraph', content: '' }] }}
+                    ? { ...n, data: { ...n.data, content: [...n.data.content, { id: crypto.randomUUID(), type: 'paragraph', content: '' }] }}
                     : n
             )
         );
@@ -136,7 +176,7 @@ export default function usePanelContent(
         storyData.setNodes((nodes) =>
             nodes.map((n: StoryNode) =>
                 current.id === n.id
-                    ? { ...n, data: { ...n.data, content: [...n.data.content, { type: 'image', content: '' }] }}
+                    ? { ...n, data: { ...n.data, content: [...n.data.content, { id: crypto.randomUUID(), type: 'image', content: '' }] }}
                     : n
             )
         )
@@ -168,10 +208,91 @@ export default function usePanelContent(
                     conditionGroups: e.data.conditionGroups.map((g) => ({
                         ...g,
                         conditions: g.conditions.filter((c) => c.label !== variableToDelete.label)
-                    }))
+                    })),
+                    assignments: (e.data.assignments ?? []).filter((a) => a.label !== variableToDelete.label)
                 }
             }))
         );
+        setIsSaved(false);
+    }
+
+    //---------- TRIGGER ----------//
+    const onAddTrigger = () => {
+        if (storyData.variables.filter((v) => v.label !== '').length <= 0) return;
+        storyData.setTriggers((triggers) => [...triggers, { id: crypto.randomUUID(), conditionGroups: [], actions: [] }]);
+        setIsSaved(false);
+    }
+    const onRemoveTrigger = (index: number) => {
+        storyData.setTriggers((triggers) => triggers.filter((_, i) => i !== index));
+        setIsSaved(false);
+    }
+    const onTriggerAddGroup = (triggerIndex: number) => {
+        if (storyData.variables.filter((v) => v.label !== '').length <= 0) return;
+        storyData.setTriggers((triggers) => triggers.map((t, ti) =>
+            ti === triggerIndex ? { ...t, conditionGroups: [...t.conditionGroups, { conditions: [] }] } : t
+        ));
+        setIsSaved(false);
+    }
+    const onTriggerAddCondition = (triggerIndex: number, groupIndex: number) => {
+        const firstValidVariable = storyData.variables.filter((v) => v.label !== '').at(0);
+        if (!firstValidVariable) return;
+        storyData.setTriggers((triggers) => triggers.map((t, ti) =>
+            ti === triggerIndex ? { ...t, conditionGroups: t.conditionGroups.map((g, gi) =>
+                gi === groupIndex ? { ...g, conditions: [...g.conditions, { label: firstValidVariable.label, operation: '==', value: '' }] } : g
+            )} : t
+        ));
+        setIsSaved(false);
+    }
+    const onTriggerRemoveGroup = (triggerIndex: number, groupIndex: number) => {
+        storyData.setTriggers((triggers) => triggers.map((t, ti) =>
+            ti === triggerIndex ? { ...t, conditionGroups: t.conditionGroups.filter((_, gi) => gi !== groupIndex) } : t
+        ));
+        setIsSaved(false);
+    }
+    const onTriggerRemoveCondition = (triggerIndex: number, groupIndex: number, conditionIndex: number) => {
+        storyData.setTriggers((triggers) => triggers.map((t, ti) =>
+            ti === triggerIndex ? { ...t, conditionGroups: t.conditionGroups.map((g, gi) =>
+                gi === groupIndex ? { ...g, conditions: g.conditions.filter((_, ci) => ci !== conditionIndex) } : g
+            )} : t
+        ));
+        setIsSaved(false);
+    }
+    const onTriggerConditionsChanged = (triggerIndex: number, groupIndex: number, conditionIndex: number, field: keyof Condition, value: string) => {
+        storyData.setTriggers((triggers) => triggers.map((t, ti) =>
+            ti === triggerIndex ? { ...t, conditionGroups: t.conditionGroups.map((g, gi) =>
+                gi === groupIndex ? { ...g, conditions: g.conditions.map((c, ci) =>
+                    ci === conditionIndex ? { ...c, [field]: value } : c
+                )} : g
+            )} : t
+        ));
+        setIsSaved(false);
+    }
+    const onAddAction = (triggerIndex: number) => {
+        storyData.setTriggers((triggers) => triggers.map((t, ti) =>
+            ti === triggerIndex ? { ...t, actions: [...t.actions, { type: 'redirect', target: '' }] } : t
+        ));
+        setIsSaved(false);
+    }
+    const onRemoveAction = (triggerIndex: number, actionIndex: number) => {
+        storyData.setTriggers((triggers) => triggers.map((t, ti) =>
+            ti === triggerIndex ? { ...t, actions: t.actions.filter((_, ai) => ai !== actionIndex) } : t
+        ));
+        setIsSaved(false);
+    }
+    const onActionChanged = (triggerIndex: number, actionIndex: number, field: string, value: string) => {
+        storyData.setTriggers((triggers) => triggers.map((t, ti) =>
+            ti === triggerIndex ? { ...t, actions: t.actions.map((a, ai) => {
+                if (ai !== actionIndex) return a;
+                if (field === 'type') {
+                    // Quand on change le type, on réinitialise l'action
+                    if (value === 'redirect') return { type: 'redirect', target: '' };
+                    if (value === 'assignment') return { type: 'assignment', label: '', operation: '=', value: '' };
+                    return a;
+                }
+                // Pour les autres champs, on garde le type et on met à jour le champ
+                return { ...a, [field]: value } as TriggerAction;
+            })} : t
+        ));
         setIsSaved(false);
     }
 
@@ -188,8 +309,22 @@ export default function usePanelContent(
         onDataChange,
         onAddParagraph,
         onAddImage,
+        onAddAssignment,
+        onRemoveAssignment,
+        onAssignmentChanged,
         onVariableChange,
         onAddVariable,
-        onRemoveVariable
+        onRemoveVariable,
+        // ---
+        onAddTrigger,
+        onRemoveTrigger,
+        onTriggerConditionsChanged,
+        onTriggerAddGroup,
+        onTriggerAddCondition,
+        onTriggerRemoveGroup,
+        onTriggerRemoveCondition,
+        onAddAction,
+        onRemoveAction,
+        onActionChanged
     }
 }

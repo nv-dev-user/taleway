@@ -1,6 +1,7 @@
 "use client"
 
 import { useSortable } from "@dnd-kit/react/sortable"
+import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable"
 import { Icon } from "@iconify/react"
 import { ReactNode } from "react"
 
@@ -12,7 +13,11 @@ interface SortableContentItemProps {
 }
 
 export default function SortableContentItem({ id, index, children, onRemove }: SortableContentItemProps) {
-    const { ref, handleRef, isDragging } = useSortable({ id, index })
+    const { ref, handleRef, isDragging } = useSortable({
+        id,
+        index,
+        plugins: [SortableKeyboardPlugin]
+    })
 
     return (
         <div

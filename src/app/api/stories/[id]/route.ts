@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db"
 import { stories } from "@/lib/schema"
-import { GraphData, StoryEdge, StoryNode, Variable } from "@/types";
+import { GraphData, StoryEdge, StoryNode, Trigger, Variable } from "@/types";
 import { eq } from "drizzle-orm"
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +22,8 @@ type SaveInfo = {
     title: string,
     nodes: StoryNode[],
     edges: StoryEdge[],
-    variables: Variable[]
+    variables: Variable[],
+    triggers: Trigger[]
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }>}) {
@@ -30,7 +31,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     try {
         // Retrieving info to update
-        const { title, nodes, edges, variables }: SaveInfo = await req.json();
+        const { title, nodes, edges, variables, triggers }: SaveInfo = await req.json();
         if (!title) return Response.json({ message: "The title cannot be empty" }, { status: 400 });
 
         // Verifying story existance
@@ -41,7 +42,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         if (variables.filter((variable) => variable.label === '' || variable.value === '').length > 0)
             return Response.json({ message: "One or more variables are invalid" }, { status: 400 });
 
-        const graph: GraphData = { nodes, edges, variables };
+        const graph: GraphData = { nodes, edges, variables, triggers };
         await db.update(stories).set({
             title,
             graph,
